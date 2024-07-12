@@ -205,7 +205,13 @@ class BaseFileUpload extends Field
                 str_contains($file->getMimeType(), 'image') &&
                 ($optimize || $resize)
             ) {
-                $image = InterventionImage::make($file);
+                $temporaryFileDisk = config('livewire.temporary_file_upload.disk');
+                if ($temporaryFileDisk === 's3') {
+                    $content = Storage::disk('s3')->get($file->path());
+                    $image = InterventionImage::make($content);
+                } else {
+                    $image = InterventionImage::make($file);
+                }
 
                 if ($optimize) {
                     $quality = $optimize === 'jpeg' ||
