@@ -1,3 +1,6 @@
+> [!CAUTION]  
+> There are no plans to extend this plugin's lifetime beyond Filament v3. Please do not plan to use this in production if you are thinking of upgrading to Filament v4 when it is released in the summer of 2025.
+
 # Optimize your Filament images before they reach your database.
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/joshembling/image-optimizer.svg?style=flat-square)](https://packagist.org/packages/joshembling/image-optimizer)
@@ -32,7 +35,7 @@ You use the same components as you have been doing and have access to two additi
 
 ## Installation
 
-You can install the package via composer, which currently works with the latest Filament version (^3.2) and Laravel 10 & 11:
+You can install the package via composer, which currently works with the latest Filament version (^3.2) and Laravel 10, 11 & 12:
 
 ```bash
 composer require joshembling/image-optimizer
@@ -57,6 +60,7 @@ For specific versions that match your PHP, Laravel, Filament and Image Optimizer
 | ^8.1 | ^10.0 | ^3.1 | 1.2 |
 | ^8.1 | ^10.0 | ^3.2 | ~1.3 |
 | ^8.2 | ^10.0, ^11.0 | ^3.2 | ^1.4 |
+| ^8.2 | ^10.0, ^11.0, ^12.0 | ^3.2 | ^1.6 |
 
 ### Server
 
@@ -110,6 +114,19 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 SpatieMediaLibraryFileUpload::make('attachment')
     ->image()
     ->resize(50),
+`````
+
+### Add maximum width and/or height
+
+You can also add a maximum width and/or height to the image. This will resize the image to the maximum width and/or height, maintaining the aspect ratio.
+
+`````php
+use Filament\Forms\Components\FileUpload;
+
+FileUpload::make('attachment')
+    ->image()
+    ->maxWidth(1024)
+    ->maxHeight(768),
 `````
 
 ### Combining methods

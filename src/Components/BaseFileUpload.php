@@ -48,6 +48,8 @@ class BaseFileUpload extends Field
 
     protected int | Closure | null $minSize = null;
 
+    protected int | Closure | null $maxParallelUploads = null;
+
     protected int | Closure | null $maxFiles = null;
 
     protected int | Closure | null $minFiles = null;
@@ -55,6 +57,10 @@ class BaseFileUpload extends Field
     protected string | Closure | null $optimize = null;
 
     protected int | Closure | null $resize = null;
+
+    protected int | Closure | null $maxImageWidth = null;
+
+    protected int | Closure | null $maxImageHeight = null;
 
     protected bool | Closure $shouldPreserveFilenames = false;
 
@@ -199,11 +205,16 @@ class BaseFileUpload extends Field
             $filename = $component->getUploadedFileNameForStorage($file);
             $optimize = $component->getOptimization();
             $resize = $component->getResize();
-            //$originalBinaryFile = $file->get();
+            $maxImageWidth = $component->getMaxImageWidth();
+            $maxImageHeight = $component->getMaxImageHeight();
+            $shouldResize = false;
+            $imageHeight = null;
+            $imageWidth = null;
+            // $originalBinaryFile = $file->get();
 
             if (
                 str_contains($file->getMimeType(), 'image') &&
-                ($optimize || $resize)
+                ($optimize || $resize || $maxImageWidth || $maxImageHeight)
             ) {
                 $temporaryFileDisk = config('livewire.temporary_file_upload.disk');
                 if ($temporaryFileDisk === 's3') {
@@ -218,17 +229,28 @@ class BaseFileUpload extends Field
                         $optimize === 'jpg' ? 70 : null;
                 }
 
+                if ($maxImageWidth && $image->width() > $maxImageWidth) {
+                    $shouldResize = true;
+                    $imageWidth = $maxImageWidth;
+                }
+
+                if ($maxImageHeight && $image->height() > $maxImageHeight) {
+                    $shouldResize = true;
+                    $imageHeight = $maxImageHeight;
+                }
+
                 if ($resize) {
-                    $height = null;
-                    $width = null;
+                    $shouldResize = true;
 
                     if ($image->height() > $image->width()) {
-                        $height = $image->height() - ($image->height() * ($resize / 100));
+                        $imageHeight = $image->height() - ($image->height() * ($resize / 100));
                     } else {
-                        $width = $image->width() - ($image->width() * ($resize / 100));
+                        $imageWidth = $image->width() - ($image->width() * ($resize / 100));
                     }
+                }
 
-                    $image->resize($width, $height, function ($constraint) {
+                if ($shouldResize) {
+                    $image->resize($imageWidth, $imageHeight, function ($constraint) {
                         $constraint->aspectRatio();
                     });
                 }
@@ -284,9 +306,9 @@ class BaseFileUpload extends Field
 
     public function callAfterStateUpdated(): static
     {
-        if ($callback = $this->afterStateUpdated) {
-            $state = $this->getState();
+        $state = $this->getState();
 
+        foreach ($this->afterStateUpdated as $callback) {
             $this->evaluate($callback, [
                 'state' => $this->isMultiple() ? $state : Arr::first($state ?? []),
             ]);
@@ -457,6 +479,13 @@ class BaseFileUpload extends Field
         return $this;
     }
 
+    public function maxParallelUploads(int | Closure | null $count): static
+    {
+        $this->maxParallelUploads = $count;
+
+        return $this;
+    }
+
     public function maxFiles(int | Closure | null $count): static
     {
         $this->maxFiles = $count;
@@ -488,6 +517,20 @@ class BaseFileUpload extends Field
     public function resize(int | Closure | null $reductionPercentage): static
     {
         $this->resize = $reductionPercentage;
+
+        return $this;
+    }
+
+    public function maxImageWidth(int | Closure | null $width): static
+    {
+        $this->maxImageWidth = $width;
+
+        return $this;
+    }
+
+    public function maxImageHeight(int | Closure | null $height): static
+    {
+        $this->maxImageHeight = $height;
 
         return $this;
     }
@@ -626,6 +669,21 @@ class BaseFileUpload extends Field
     public function getResize(): ?int
     {
         return $this->evaluate($this->resize);
+    }
+
+    public function getMaxImageWidth(): ?int
+    {
+        return $this->evaluate($this->maxImageWidth);
+    }
+
+    public function getMaxImageHeight(): ?int
+    {
+        return $this->evaluate($this->maxImageHeight);
+    }
+
+    public function getMaxParallelUploads(): ?int
+    {
+        return $this->evaluate($this->maxParallelUploads);
     }
 
     public function getVisibility(): string
